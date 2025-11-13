@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>BTC Alerts — Mobile</title>
+  <meta name="theme-color" content="#0d1220" />
+  <style>
+    body{font-family:Inter,system-ui,sans-serif;background:#071021;color:#eaf1ff;margin:0;padding:18px;}
+    header{display:flex;align-items:center;gap:12px}
+    h1{font-size:18px;margin:0}
+    #toggle{margin-left:auto;padding:14px 18px;background:#10b981;border:0;border-radius:12px;color:white;font-weight:700}
+    .card{background:#081227;border-radius:12px;padding:14px;margin-top:12px}
+    .price{font-size:32px;font-weight:800}
+    .small{color:#9fb0d6;font-size:13px}
+    #log{height:220px;overflow:auto;background:#04111e;padding:10px;border-radius:8px;font-family:monospace;font-size:13px;margin-top:10px}
+    .controls{display:flex;gap:8px;margin-top:10px}
+    .btn{flex:1;padding:10px;border-radius:10px;border:0;background:#0b2a3a;color:#cfe9ff}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>BTC Alerts (Mobile)</h1>
+    <button id="toggle">Start</button>
+  </header>
+
+  <div class="card">
+    <div class="small">Last update: <span id="ts">—</span></div>
+    <div class="price" id="price">—</div>
+    <div class="small">Up prob: <span id="prob">—</span> &nbsp; | &nbsp; OB: <span id="imb">—</span></div>
+
+    <div class="controls">
+      <button id="notifBtn" class="btn">Notifications</button>
+      <button id="pwaBtn" class="btn">Install (PWA)</button>
+    </div>
+
+    <div id="log">No events yet.</div>
+  </div>
+
+<script>
+(() => {
+  // === EDIT ONLY THIS LINE ===
+  // Replace the URL below with your server WebSocket endpoint (example: wss://abcd1234.ngrok.io/ws/predict)
+  const SERVER_WS_URL = "wss://your-server.example/ws/predict";
+  // ===========================
+
+  const toggleBtn = document.getElementById("toggle");
+  const tsEl = document.getElementById("ts");
+  const priceEl = document.getElementById("price");
+  const probEl = document.getElementById("prob");
+  const imbEl = document.getElementById("imb");
+  const logEl = document.getElementById("log");
+  const notifBtn = document.getElementById("notifBtn");
+  const pwaBtn = document.getElementById("pwaBtn");
+
+  let ws = null;
+  let swReg = null;
+  let lastUpAlert = 0, lastDownAlert = 0;
+  const COOLDOWN_MS = 5000;
+  const UP_T = 0.80, DOWN_T = 0.20;
+
+  // Register service worker (for notifications when page is open/installed)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(r => { swReg = r; appendLog("Service worker registered"); })
+      .catch(e => appendLog("SW registration failed: " + e));
+  }
+
+  function appendLog(s) {
+    logEl.textContent = `[${new Date().toLocaleTimeString()}] ${s}\n` + logEl.textContent;
+  }
+
+  function speak(text) {
+    try {
+      if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance(text);
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(u);
+      }
+    } catch(e){}
+  }
+
+  function notify(title, body) {
+    if (swReg && swReg.showNotification) {
+      swReg.showNotification(title, { body });
+    } else if (Notification && Notification.permission === 'granted') {
+      new Notification(title, { body });
+    }
+  }
+
+  function handleMessage(msg) {
+    // message format expected: { price, up_probability, predicted_up, ob_imbalance, lt_10s, lt_60s }
+    const price = msg.price || 0;
+    const prob = (typeof msg.up_probability === 'number') ? msg.up_probability : (msg.up_prob || 0.5);
+    const imb = (typeof msg.ob_imbalance === 'number') ? msg.ob_imbalance : 0;
+    tsEl.textContent = new Date().toLocaleString();
+    priceEl.textContent = price ? '$' + Math.round(price).toLocaleString() : 'n/a';
+    probEl.textContent = prob.toFixed(3);
+    imbEl.textContent = (typeof imb === 'number' && imb.toFixed) ? imb.toFixed(3) : String(imb);
+
+    const now = Date.now();
+    if (prob >= UP_T && now - lastUpAlert > COOLDOWN_MS) {
+      lastUpAlert = now;
+      const txt = `Strong move up expected near ${Math.round(price)} dollars`;
+      appendLog("ALERT UP " + price + " prob=" + prob.toFixed(3));
+      speak(txt);
+      notify("BTC ALERT — UP", txt);
+    } else if (prob <= DOWN_T && now - lastDownAlert > COOLDOWN_MS) {
+      lastDownAlert = now;
+      const txt = `Strong move down expected near ${Math.round(price)} dollars`;
+      appendLog("ALERT DOWN " + price + " prob=" + prob.toFixed(3));
+      speak(txt);
+      notify("BTC ALERT — DOWN", txt);
+    } else {
+      appendLog("Update price=" + price + " prob=" + prob.toFixed(3));
+    }
+  }
+
+  function connect() {
+    if (!SERVER_WS_URL) { appendLog("SERVER_WS_URL not set"); return; }
+    try {
+      ws = new WebSocket(SERVER_WS_URL);
+    } catch (e) {
+      appendLog("WebSocket open error: " + e);
+      return;
+    }
+    ws.onopen = () => { toggleBtn.textContent = "Stop"; appendLog("Connected to server"); };
+    ws.onmessage = e => {
+      let data = null;
+      try { data = JSON.parse(e.data); } catch (ex) { appendLog("Bad JSON"); return; }
+      if (data && data.data && typeof data.data === 'object') data = data.data; // envelope handling
+      handleMessage(data);
+    };
+    ws.onclose = () => { toggleBtn.textContent = "Start"; appendLog("Connection closed"); if (toggleBtn.dataset.running === "true") setTimeout(connect,1500); };
+    ws.onerror = err => { appendLog("WebSocket error"); console.error(err); };
+  }
+
+  function disconnect() {
+    toggleBtn.dataset.running = "false";
+    if (ws) ws.close();
+    ws = null;
+    toggleBtn.textContent = "Start";
+    appendLog("Stopped");
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    const running = toggleBtn.dataset.running === "true";
+    if (!running) {
+      toggleBtn.dataset.running = "true";
+      connect();
+      requestNotificationPermission();
+    } else {
+      toggleBtn.dataset.running = "false";
+      disconnect();
+    }
+  });
+
+  notifBtn.addEventListener('click', requestNotificationPermission);
+
+  async function requestNotificationPermission() {
+    if (!("Notification" in window)) { appendLog("No Notifications API"); return; }
+    if (Notification.permission === 'granted') { appendLog("Notifications already granted"); return; }
+    const p = await Notification.requestPermission();
+    appendLog("Notification permission: " + p);
+  }
+
+  // PWA install prompt handling
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    pwaBtn.style.display = 'inline-block';
+    appendLog("PWA install available");
+  });
+  pwaBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) { appendLog("No install prompt"); return; }
+    deferredPrompt.prompt();
+    const choice = await deferredPrompt.userChoice;
+    appendLog("PWA choice: " + choice.outcome);
+    deferredPrompt = null;
+  });
+
+  appendLog("Ready. Edit SERVER_WS_URL above, open this page on your phone, then press Start.");
+})();
+</script>
+</body>
+</html>
