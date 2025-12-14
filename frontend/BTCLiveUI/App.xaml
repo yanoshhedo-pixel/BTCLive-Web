@@ -1,0 +1,11 @@
+<Application x:Class="BTCLiveUI.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <!-- Global styles -->
+        <Style TargetType="Window">
+            <Setter Property="Background" Value="#071021"/>
+            <Setter Property="Foreground" Value="#eaf1ff"/>
+        </Style>
+    </Application.Resources>
+</Application>

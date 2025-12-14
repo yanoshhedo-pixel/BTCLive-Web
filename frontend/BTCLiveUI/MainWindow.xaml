@@ -1,0 +1,142 @@
+<Window x:Class="BTCLiveUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="BTC Live - Scalping Alerts" 
+        Height="700" 
+        Width="1200"
+        Background="#071021"
+        WindowStartupLocation="CenterScreen">
+    
+    <Window.Resources>
+        <!-- Styles -->
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#eaf1ff"/>
+        </Style>
+        
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="#081227"/>
+            <Setter Property="Foreground" Value="#eaf1ff"/>
+            <Setter Property="BorderBrush" Value="#1e3a5f"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#1e3a5f"/>
+            <Setter Property="RowBackground" Value="#0a1836"/>
+            <Setter Property="AlternatingRowBackground" Value="#081227"/>
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+        </Style>
+
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#0d1f3d"/>
+            <Setter Property="Foreground" Value="#cfe9ff"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="BorderBrush" Value="#1e3a5f"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+        </Style>
+
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#10b981"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#059669"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="2*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#0d1f3d" CornerRadius="8" Padding="15" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="BTC Live Scalping Alerts" FontSize="24" FontWeight="Bold" Foreground="#10b981"/>
+                    <TextBlock Text="{Binding ConnectionStatus}" FontSize="12" Foreground="#9fb0d6" Margin="0,5,0,0"/>
+                </StackPanel>
+
+                <CheckBox Grid.Column="1" 
+                          Content="Sound" 
+                          IsChecked="{Binding SoundEnabled}"
+                          Foreground="#eaf1ff"
+                          VerticalAlignment="Center"
+                          Margin="0,0,15,0"/>
+
+                <Button Grid.Column="2" 
+                        Content="{Binding ConnectButtonText}"
+                        Command="{Binding ConnectCommand}"
+                        Width="120"
+                        VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- Signals Table -->
+        <Border Grid.Row="1" Background="#081227" CornerRadius="8" Padding="10" Margin="0,0,0,10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="Active Signals" FontSize="16" FontWeight="Bold" Margin="5,5,5,10"/>
+
+                <DataGrid Grid.Row="1" ItemsSource="{Binding Signals}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Exchange" Binding="{Binding Exchange}" Width="100"/>
+                        <DataGridTextColumn Header="Setup Type" Binding="{Binding SetupType}" Width="120"/>
+                        <DataGridTextColumn Header="Score" Binding="{Binding FormattedScore}" Width="80"/>
+                        <DataGridTextColumn Header="Price" Binding="{Binding FormattedPrice}" Width="100"/>
+                        <DataGridTextColumn Header="Entry" Binding="{Binding FormattedEntry}" Width="100"/>
+                        <DataGridTextColumn Header="Stop" Binding="{Binding FormattedInvalidation}" Width="100"/>
+                        <DataGridTextColumn Header="Target" Binding="{Binding FormattedTarget}" Width="100"/>
+                        <DataGridTextColumn Header="Spread" Binding="{Binding FormattedSpread}" Width="90"/>
+                        <DataGridTextColumn Header="Slippage" Binding="{Binding FormattedSlippage}" Width="90"/>
+                        <DataGridTextColumn Header="TTL" Binding="{Binding TtlSeconds}" Width="60"/>
+                        <DataGridTextColumn Header="Mode" Binding="{Binding Mode}" Width="100"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <!-- Alert Log -->
+        <Border Grid.Row="2" Background="#081227" CornerRadius="8" Padding="10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Margin="5,5,5,10">
+                    <TextBlock Text="Alert Log" FontSize="16" FontWeight="Bold" HorizontalAlignment="Left"/>
+                    <Button Content="Clear" Command="{Binding ClearLogsCommand}" Width="80" HorizontalAlignment="Right"/>
+                </Grid>
+
+                <DataGrid Grid.Row="1" ItemsSource="{Binding AlertLogs}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Time" Binding="{Binding FormattedTimestamp}" Width="100"/>
+                        <DataGridTextColumn Header="Exchange" Binding="{Binding Exchange}" Width="100"/>
+                        <DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
