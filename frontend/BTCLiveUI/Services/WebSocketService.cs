@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text;
 using Newtonsoft.Json;
@@ -64,7 +65,7 @@ namespace BTCLiveUI.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"WebSocket receive error: {ex.Message}");
+                Debug.WriteLine($"WebSocket receive error: {ex.Message}");
             }
             finally
             {
@@ -88,7 +89,10 @@ namespace BTCLiveUI.Services
                         );
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"WebSocket disconnect error: {ex.Message}");
+                }
                 finally
                 {
                     _webSocket?.Dispose();

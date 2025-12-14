@@ -1,7 +1,7 @@
 """
 Trade flow analysis and tape reading features.
 """
-from typing import Dict, List
+from typing import Dict, List, Optional
 from collections import deque
 from dataclasses import dataclass
 import time
@@ -147,7 +147,7 @@ class TapeAnalyzer:
         
         return vwap
     
-    def detect_sweep(self, threshold_usd: float = 50000, seconds: int = 5) -> Dict:
+    def detect_sweep(self, threshold_usd: float = 50000, seconds: int = 5) -> Optional[Dict]:
         """
         Detect large aggressive orders (sweeps).
         

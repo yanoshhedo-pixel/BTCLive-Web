@@ -107,13 +107,13 @@ class SignalEngine:
             entry_level = current_price
             invalidation_level = sweep["price"] * 1.002  # 0.2% above sweep
             target_level = current_price * 0.998  # 0.2% below current
+            slippage = self.orderbook.estimate_slippage("sell", 10000)  # Estimate for $10k sell
         else:
             # Sweep down, expecting rejection up
             entry_level = current_price
             invalidation_level = sweep["price"] * 0.998  # 0.2% below sweep
             target_level = current_price * 1.002  # 0.2% above current
-        
-        slippage = self.orderbook.estimate_slippage("buy", 10000)  # Estimate for $10k
+            slippage = self.orderbook.estimate_slippage("buy", 10000)  # Estimate for $10k buy
         
         signal = Signal(
             exchange=self.exchange,

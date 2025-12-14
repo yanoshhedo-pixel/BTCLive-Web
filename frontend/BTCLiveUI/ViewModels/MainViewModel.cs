@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
@@ -138,15 +139,20 @@ namespace BTCLiveUI.ViewModels
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error processing message: {ex.Message}");
+                Debug.WriteLine($"Error processing message: {ex.Message}");
             }
         }
 
         private void UpdateSignals(List<Signal> newSignals)
         {
             // Check for new signals (not in current list)
-            var existingIds = new HashSet<long>(Signals.Select(s => s.Timestamp));
-            var hasNewSignals = newSignals.Any(s => !existingIds.Contains(s.Timestamp));
+            // Use combination of exchange, setup_type, and timestamp for uniqueness
+            var existingKeys = new HashSet<string>(
+                Signals.Select(s => $"{s.Exchange}_{s.SetupType}_{s.Timestamp}")
+            );
+            var hasNewSignals = newSignals.Any(s => 
+                !existingKeys.Contains($"{s.Exchange}_{s.SetupType}_{s.Timestamp}")
+            );
 
             // Clear and update
             Signals.Clear();
